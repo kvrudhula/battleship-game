@@ -499,6 +499,37 @@ button.primary:hover:not(:disabled) {
   outline: 2px solid var(--accent);
 }
 
+/* ---- Ship icons inside grid cells ---- */
+.cell.has-icon {
+  position: relative;
+}
+.cell.has-icon::after {
+  display: none; /* suppress X mark; the icon itself signals state */
+}
+.cell.hit.has-icon,
+.cell.sunk.has-icon {
+  background: var(--water);
+}
+.cell-ship-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.85);
+  pointer-events: none; /* never intercept cell clicks / hover */
+}
+.cell-ship-icon svg {
+  width: 22px;
+  height: 10px;
+}
+.cell-ship-icon.icon-hit {
+  color: var(--hit);
+}
+.cell-ship-icon.icon-sunk {
+  color: var(--danger);
+}
+
 /* ---- Info: legend + log ---- */
 .info {
   display: flex;

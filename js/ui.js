@@ -359,6 +359,25 @@ export class UI {
       el.classList.add('ship');
     }
 
+    // Ship icons on the board: player always, enemy only when sunk.
+    if (ship) {
+      const isSunk = ship.hits >= ship.size;
+      if (!isEnemy && revealShips) {
+        el.classList.add('has-icon');
+        const iconEl = document.createElement('span');
+        iconEl.className = 'cell-ship-icon';
+        if (wasShot) iconEl.classList.add(isSunk ? 'icon-sunk' : 'icon-hit');
+        iconEl.innerHTML = SHIP_ICONS[ship.id] || '';
+        el.appendChild(iconEl);
+      } else if (isEnemy && isSunk) {
+        el.classList.add('has-icon');
+        const iconEl = document.createElement('span');
+        iconEl.className = 'cell-ship-icon icon-sunk';
+        iconEl.innerHTML = SHIP_ICONS[ship.id] || '';
+        el.appendChild(iconEl);
+      }
+    }
+
     if (isEnemy) {
       this._wireEnemyCell(el, r, c);
     } else if (this.game.phase === PHASE.PLACEMENT) {

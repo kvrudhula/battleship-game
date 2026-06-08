@@ -85,3 +85,87 @@ no regressions were observed in placement, firing, or win/loss handling. Because
 no bug occurred, there are no before/after bug screenshots; instead, screenshots
 of each feature working were captured as verification evidence and a full
 playthrough was recorded.
+
+### Round 3 testing video
+
+Direct link: [docs/videos/round3-battle-features.mp4](docs/videos/round3-battle-features.mp4)
+
+<video src="https://raw.githubusercontent.com/kvrudhula/battleship-game/game/docs/videos/round3-battle-features.mp4" controls width="640"></video>
+
+---
+
+# Round 4 — Ship icons on the game board
+
+This round renders the custom top-down ship icons directly on the board cells
+during battle, with different logic per board:
+
+1. **Player board** — every ship cell always shows its silhouette icon. Intact
+   cells render the icon in white over the grey ship colour; a hit cell turns the
+   icon **green** (matching the `Hit` legend colour); a fully sunk ship turns its
+   icons **red** (matching the `Sunk` legend colour).
+2. **Enemy board** — cells stay as plain water (and hit-but-not-sunk cells keep
+   the green ✕) until a ship is **sunk**. On sinking, that ship's cells reveal the
+   matching shipyard icon in the **Sunk** colour (red).
+
+## Implementation notes
+
+- `_gameCell()` in `js/ui.js` now appends a `<span class="cell-ship-icon">`
+  containing the ship's SVG. Player cells always get the icon (when
+  `revealShips`); enemy cells only get it once `ship.hits >= ship.size`.
+- The icon colour is driven by a modifier class: `icon-hit` (green, `--hit`) when
+  the cell was shot but the ship is not yet sunk, and `icon-sunk` (red,
+  `--danger`) once the ship is sunk.
+- New CSS in `styles.css` sizes the SVG to fit the 28 px cell, suppresses the
+  `::after` ✕/dot when an icon is present (`.cell.has-icon::after { display:none }`),
+  switches hit/sunk cell backgrounds to water so the coloured icon is legible,
+  and sets `pointer-events: none` on the icon so it never intercepts cell
+  clicks/hover.
+
+## Testing methodology
+
+A full browser playthrough was recorded (placement → battle → victory → Play
+Again). Each behaviour was verified on screen:
+
+- **Player icons during placement and battle** — every placed ship cell shows
+  its silhouette icon.
+- **Hit vs. sunk colours on the player board** — a partially hit Carrier cell
+  rendered green while a fully sunk Destroyer rendered red; intact cells stayed
+  white.
+- **Enemy reveal-on-sink** — a hit-but-not-sunk enemy cell kept the green ✕ with
+  no icon; once the Destroyer was sunk, both of its cells revealed the red
+  destroyer icon. On victory, every enemy ship's icon was revealed in red.
+- **Play Again** — both boards were cleared of all icons and returned to the
+  initial placement state.
+- **Regression checks** — no console errors; turn-locking, repeat-shot
+  rejection, and win/loss detection all unchanged.
+
+## Bugs found
+
+**None.** All board-icon behaviour worked correctly on the first full
+playthrough, and no regressions were observed. As in previous rounds, no bug
+occurred, so there are no before/after bug screenshots; the screenshots below are
+verification evidence of each state working as specified.
+
+## Verification screenshots
+
+**Player board — ship icons shown during placement:**
+
+![Player board ship icons during placement](docs/images/player-icons-placement.png)
+
+**Player board — hit cell green, sunk ship red, intact cells white:**
+
+![Player board hit green and sunk red](docs/images/player-hit-green-sunk-red.png)
+
+**Both boards mid-battle — green hit + red sunk on the player board (left); enemy destroyer revealed in red on sink (right):**
+
+![Both boards showing hit/sunk states](docs/images/both-boards-states.png)
+
+**Victory — every enemy ship icon revealed in red:**
+
+![Victory with all enemy icons revealed](docs/images/victory-all-enemy-icons.png)
+
+## Round 4 testing video
+
+Direct link: [docs/videos/round4-board-icons.mp4](docs/videos/round4-board-icons.mp4)
+
+<video src="https://raw.githubusercontent.com/kvrudhula/battleship-game/game/docs/videos/round4-board-icons.mp4" controls width="640"></video>
