@@ -86,12 +86,6 @@ no bug occurred, there are no before/after bug screenshots; instead, screenshots
 of each feature working were captured as verification evidence and a full
 playthrough was recorded.
 
-### Round 3 testing video
-
-Direct link: [docs/videos/round3-battle-features.mp4](docs/videos/round3-battle-features.mp4)
-
-<video src="https://raw.githubusercontent.com/kvrudhula/battleship-game/game/docs/videos/round3-battle-features.mp4" controls width="640"></video>
-
 ---
 
 # Round 4 — Ship icons on the game board
@@ -163,9 +157,3 @@ verification evidence of each state working as specified.
 **Victory — every enemy ship icon revealed in red:**
 
 ![Victory with all enemy icons revealed](docs/images/victory-all-enemy-icons.png)
-
-## Round 4 testing video
-
-Direct link: [docs/videos/round4-board-icons.mp4](docs/videos/round4-board-icons.mp4)
-
-<video src="https://raw.githubusercontent.com/kvrudhula/battleship-game/game/docs/videos/round4-board-icons.mp4" controls width="640"></video>
