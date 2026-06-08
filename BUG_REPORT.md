@@ -691,3 +691,78 @@ The images below are verification evidence.
 **Close-up of Enemy Waters after the loss:**
 
 ![Loss reveal close-up](docs/images/round11-loss-reveal-zoom.png)
+
+# Round 12 — Rename the enemy fleet
+
+## What changed
+
+Only the **enemy** ships were renamed (the player's own ships keep the standard
+names). The new names appear in the Enemy Fleet shipyard, the battle log, and the
+sink notification. The enemy-sink overlay grammar also changed to
+`You've sunk [Name]`.
+
+| Standard ship | Enemy display name |
+| --- | --- |
+| Carrier | Claude Code |
+| Battleship | Codex |
+| Cruiser | Cursor |
+| Submarine | GitHub Copilot |
+| Destroyer | IBM Bob |
+
+| Event | Before | After |
+| --- | --- | --- |
+| You sink an enemy ship | `You have sunk an Enemy Cruiser` | `You've sunk Cursor` |
+| Enemy sinks your ship | `The Enemy has sunk your Battleship` | *(unchanged — your ship name kept)* |
+
+## Implementation notes
+
+- `js/constants.js` — added an `ENEMY_SHIP_NAMES` map keyed by ship `id`
+  (`carrier → Claude Code`, etc.). The standard `SHIPS` names are untouched, so
+  the player's fleet is unaffected.
+- `js/ui.js` —
+  - Added `_enemyName(ship)` → `ENEMY_SHIP_NAMES[ship.id] || ship.name`.
+  - `_shipMeta(ship, displayName)` now takes an optional display-name override;
+    the **enemy** shipyard passes `this._enemyName(ship)` while the player
+    shipyard passes nothing (standard name).
+  - `_flashForOutcome` — the player-sink branch now reads
+    `You've sunk ${this._enemyName(outcome.sunkShip)}`. The AI-sink branch still
+    uses the player ship's standard name.
+  - `_logShot` — when the player (`who === 'You'`) sinks a ship, the log uses the
+    enemy name; when the AI sinks one of the player's ships, it uses the standard
+    name.
+
+## Testing methodology
+
+Placement → battle. The enemy shipyard labels were inspected, an enemy ship was
+sunk through the real player-fire path (log + overlay), and the enemy-sinks-player
+overlay was exercised through the real flash code path. Player ship names were
+confirmed unchanged. Console was clean throughout.
+
+- **Enemy Fleet labels** — read Claude Code / Codex / Cursor / GitHub Copilot /
+  IBM Bob; the player's shipyard still read Carrier / Battleship / Cruiser /
+  Submarine / Destroyer.
+- **You sink an enemy ship** — overlay read `You've sunk Cursor` with the cruiser
+  icon; the log read `You fired at H4 and sank the IBM Bob`.
+- **Enemy sinks your ship** — overlay read `The Enemy has sunk your Battleship`
+  (player's name kept).
+- **Regression** — normal play, log, and Play Again reset all worked; no console
+  errors.
+
+## Bugs found
+
+**None.** The rename worked on the first playthrough. The images below are
+verification evidence.
+
+## Verification screenshots
+
+**Enemy Fleet shipyard with the renamed ships:**
+
+![Enemy fleet renamed](docs/images/round12-enemy-fleet.png)
+
+**Sinking an enemy ship — "You've sunk Cursor":**
+
+![You've sunk Cursor](docs/images/round12-sink-overlay.png)
+
+**Enemy sinks your ship — your ship name is unchanged:**
+
+![Enemy sinks your Battleship](docs/images/round12-player-sunk.png)

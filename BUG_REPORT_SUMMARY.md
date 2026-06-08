@@ -50,6 +50,9 @@ errors.
 - **Round 11** — on a player loss, reveal the enemy's surviving ships (intact in
   white; partially-hit ships show un-hit cells white and hit cells green; sunk
   ships red); also tuned the AI delay down to ~1.0s miss / ~1.65s hit.
+- **Round 12** — renamed only the enemy fleet (Claude Code, Codex, Cursor, GitHub
+  Copilot, IBM Bob) across the Enemy Fleet shipyard, log, and notifications;
+  enemy-sink overlay now reads "You've sunk [Name]". Player ship names unchanged.
 
 ## Verification
 

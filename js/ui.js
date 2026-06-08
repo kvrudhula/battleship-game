@@ -2,7 +2,13 @@
 // Handles all DOM rendering, user interaction, overlays, and shipyard panels.
 
 import { Game, PHASE } from './game.js';
-import { SHIPS, ORIENTATION, ATTACK_RESULT, BOARD_SIZE } from './constants.js';
+import {
+  SHIPS,
+  ENEMY_SHIP_NAMES,
+  ORIENTATION,
+  ATTACK_RESULT,
+  BOARD_SIZE,
+} from './constants.js';
 import { SHIP_ICONS, HIDDEN_ICON, MISSILE_ICON } from './icons.js';
 
 const COLUMN_LABELS = 'ABCDEFGHIJ';
@@ -125,12 +131,11 @@ export class UI {
   // Picks the right flash for a shot outcome. `who` is 'player' or 'ai'.
   _flashForOutcome(outcome, who) {
     if (outcome.result === ATTACK_RESULT.SUNK && outcome.sunkShip) {
-      const name = outcome.sunkShip.name;
       const icon = SHIP_ICONS[outcome.sunkShip.id] || '';
       const text =
         who === 'player'
-          ? `You have sunk an Enemy ${name}`
-          : `The Enemy has sunk your ${name}`;
+          ? `You've sunk ${this._enemyName(outcome.sunkShip)}`
+          : `The Enemy has sunk your ${outcome.sunkShip.name}`;
       this._showFlash(text, 'sunk', icon);
       return true;
     }
@@ -235,14 +240,21 @@ export class UI {
     return icon;
   }
 
-  // Builds the name + size-dots column for a shipyard item.
-  _shipMeta(ship) {
+  // The display name for the AI's version of a ship (falls back to the
+  // standard name). The player's own ships always use the standard name.
+  _enemyName(ship) {
+    return ENEMY_SHIP_NAMES[ship.id] || ship.name;
+  }
+
+  // Builds the name + size-dots column for a shipyard item. `displayName`
+  // overrides the ship's standard name (used for the enemy fleet).
+  _shipMeta(ship, displayName) {
     const meta = document.createElement('span');
     meta.className = 'ship-meta';
 
     const nameSpan = document.createElement('span');
     nameSpan.className = 'ship-name';
-    nameSpan.textContent = ship.name;
+    nameSpan.textContent = displayName || ship.name;
     meta.appendChild(nameSpan);
 
     const dots = document.createElement('span');
@@ -317,7 +329,7 @@ export class UI {
         ? this._shipIcon(SHIP_ICONS[ship.id])
         : this._shipIcon(HIDDEN_ICON, true);
       li.appendChild(icon);
-      li.appendChild(this._shipMeta(ship));
+      li.appendChild(this._shipMeta(ship, this._enemyName(ship)));
       list.appendChild(li);
     }
   }
@@ -562,7 +574,16 @@ export class UI {
         verb = 'hit a ship';
         break;
       case ATTACK_RESULT.SUNK:
-        verb = `sank the ${outcome.sunkShip ? outcome.sunkShip.name : 'ship'}`;
+        if (outcome.sunkShip) {
+          // `who === 'You'` means the player sank an enemy ship → enemy name.
+          const shipName =
+            who === 'You'
+              ? this._enemyName(outcome.sunkShip)
+              : outcome.sunkShip.name;
+          verb = `sank the ${shipName}`;
+        } else {
+          verb = 'sank the ship';
+        }
         break;
       default:
         verb = 'fired';

@@ -14,6 +14,18 @@ export const SHIPS = [
   { id: 'destroyer', name: 'Destroyer', size: 2 },
 ];
 
+// Display names for the AI's fleet. These override the standard ship names
+// wherever an enemy ship is shown (Enemy Fleet shipyard, sink notifications,
+// and the battle log). The player's own ships keep the standard names above.
+// Keyed by ship `id`.
+export const ENEMY_SHIP_NAMES = {
+  carrier: 'Claude Code',
+  battleship: 'Codex',
+  cruiser: 'Cursor',
+  submarine: 'GitHub Copilot',
+  destroyer: 'IBM Bob',
+};
+
 // Ship orientations.
 export const ORIENTATION = {
   HORIZONTAL: 'horizontal',
