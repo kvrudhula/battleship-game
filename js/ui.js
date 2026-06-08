@@ -10,6 +10,7 @@ import {
   BOARD_SIZE,
 } from './constants.js';
 import { SHIP_ICONS, HIDDEN_ICON, MISSILE_ICON } from './icons.js';
+import { launchConfetti, stopConfetti } from './confetti.js';
 
 const COLUMN_LABELS = 'ABCDEFGHIJ';
 
@@ -92,6 +93,7 @@ export class UI {
 
     if (phase === PHASE.OVER) {
       // "Play Again" clicked.
+      stopConfetti();
       this.game.reset();
       this.orientation = ORIENTATION.HORIZONTAL;
       this.busy = false;
@@ -539,6 +541,7 @@ export class UI {
 
     if (outcome.gameOver) {
       this.log('You win! Every enemy ship is sunk.');
+      launchConfetti();
       return;
     }
 

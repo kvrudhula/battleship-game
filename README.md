@@ -57,8 +57,11 @@ Or play the live version (see the deployed URL in the repository description).
 - **Animated overlays:**
   - **"HIT!"** with a missile graphic when you hit an enemy ship; **"You've
     been Hit!"** when the enemy hits you.
-  - **"You have sunk an Enemy [Ship]"** / **"The Enemy has sunk your [Ship]"**
-    with the matching ship icon when a ship is sunk.
+  - **"You've sunk [Ship]"** / **"The Enemy has sunk your [Ship]"**
+    with the matching ship icon when a ship is sunk. The enemy fleet uses custom
+    names (Claude Code, Codex, Cursor, GitHub Copilot, IBM Bob).
+- **Victory confetti.** Winning triggers a full-screen confetti burst; it clears
+  on "Play Again" and never appears on a loss.
 
 ## AI strategy
 
@@ -81,6 +84,7 @@ js/board.js       # Board model: placement, attacks, win detection
 js/ai.js          # Hunt-and-target AI
 js/game.js        # Rules + turn order (UI-agnostic)
 js/icons.js       # Top-down SVG ship icons + missile graphic
+js/confetti.js    # Full-screen victory confetti animation
 js/ui.js          # DOM rendering, overlays, shipyards, interaction
 js/main.js        # Entry point
 ```

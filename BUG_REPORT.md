@@ -766,3 +766,52 @@ verification evidence.
 **Enemy sinks your ship — your ship name is unchanged:**
 
 ![Enemy sinks your Battleship](docs/images/round12-player-sunk.png)
+
+# Round 13 — Victory confetti
+
+## What changed
+
+When the player wins (sinks the entire enemy fleet), a full-screen **confetti
+burst** now celebrates the victory. It appears only on a win — never on a loss —
+and is cleared when "Play Again" is clicked.
+
+## Implementation notes
+
+- New module `js/confetti.js` — a dependency-free particle system drawn on a
+  full-screen `<canvas>`. ~160 colored pieces fall with gravity, rotate, and fade
+  out over ~3–4s; the animation auto-stops when the last piece leaves. Exports
+  `launchConfetti()` and `stopConfetti()`.
+- `index.html` — added `<canvas id="confetti-canvas" class="confetti-canvas">`.
+- `styles.css` — `.confetti-canvas` is `position: fixed; inset: 0;
+  pointer-events: none; z-index: 2000;` so it covers the viewport above all UI
+  but never intercepts clicks.
+- `js/ui.js` — `launchConfetti()` is called in the player-win branch of
+  `_handlePlayerShot` (right after the "You win!" log). `stopConfetti()` is called
+  in the "Play Again" reset. The AI-win path does **not** launch confetti.
+
+## Testing methodology
+
+Placement → battle, then a forced win and a forced loss through the real game
+code paths.
+
+- **Win** — sinking the last enemy ship triggered the confetti burst across the
+  whole screen over the "Victory!" message; no console errors.
+- **Play Again** — confetti cleared immediately on reset.
+- **Loss** — the "Defeat!" screen showed no confetti (confirmed the effect is
+  win-only).
+
+## Bugs found
+
+**None** in the feature logic. (During development the canvas styling was briefly
+served from browser cache; a hard refresh confirmed the `position: fixed` overlay
+applies correctly — no code change needed.)
+
+## Verification screenshots
+
+**Victory — confetti burst:**
+
+![Victory confetti](docs/images/round13-confetti-win.png)
+
+**Loss — no confetti:**
+
+![No confetti on loss](docs/images/round13-no-confetti-loss.png)

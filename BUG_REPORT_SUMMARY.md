@@ -53,6 +53,9 @@ errors.
 - **Round 12** — renamed only the enemy fleet (Claude Code, Codex, Cursor, GitHub
   Copilot, IBM Bob) across the Enemy Fleet shipyard, log, and notifications;
   enemy-sink overlay now reads "You've sunk [Name]". Player ship names unchanged.
+- **Round 13** — added a full-screen confetti burst on a player win (new
+  dependency-free `js/confetti.js` canvas animation); confetti clears on Play
+  Again and never shows on a loss.
 
 ## Verification
 
