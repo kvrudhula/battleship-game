@@ -513,7 +513,13 @@ button.primary:hover:not(:disabled) {
 }
 .ship-overlay svg {
   width: 100%;
-  height: 70%;
+  height: 100%;
+}
+.ship-overlay-hit {
+  color: var(--hit);
+}
+.ship-overlay-sunk {
+  color: var(--danger);
 }
 
 /* ---- Info: legend + log ---- */

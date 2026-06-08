@@ -245,3 +245,82 @@ icon-rendering change itself.
 **Victory — full board with every enemy ship revealed as a stretched icon:**
 
 ![Victory with stretched enemy icons](docs/images/round5-victory-stretched.png)
+
+# Round 6 — Icon-only ships with status colours
+
+This round removes the grey ship-cell background entirely and lets the stretched
+icon **be** the ship. The icon now fills its full area (no surrounding grey), and
+its **colour communicates the ship's status** instead of the cell background:
+
+1. **Player board** — no grey cells. Each ship is a single full-size icon:
+   **white** while intact, **green** once it has taken a hit (but is not sunk),
+   and **red** when sunk. There are no longer any coloured cell backgrounds or
+   ✕ marks on player ship cells; the icon colour alone shows state. (Misses on
+   the player board still show the grey dot.)
+2. **Enemy board** — unchanged until a ship is sunk: an un-sunk hit keeps the
+   green ✕ and no icon. On sinking, the cell background is dropped and the ship
+   is revealed as an **icon-only red silhouette** over the water.
+
+## Implementation notes
+
+- `js/ui.js` — `_gameCell()` no longer adds `ship`/`hit`/`sunk` background
+  classes on the **player** board (only `miss`). On the **enemy** board it keeps
+  `hit` (green ✕) for a hit-but-not-sunk cell and adds **no** class for a sunk
+  cell, so the revealed icon sits on plain water.
+- `js/ui.js` — `_renderShipOverlays()` adds a status modifier to each overlay:
+  `ship-overlay-sunk` when `ship.hits >= ship.size`, else `ship-overlay-hit`
+  when `ship.hits > 0`, else the default white.
+- `styles.css` — the overlay SVG now fills the full box (`height: 100%`, was
+  `70%`) so the icon is as large as its area; `.ship-overlay-hit { color: var(--hit) }`
+  and `.ship-overlay-sunk { color: var(--danger) }` drive the status colours
+  (the SVGs use `fill="currentColor"`).
+
+## Testing methodology
+
+A full browser playthrough was recorded (placement → battle → victory → Play
+Again). Each behaviour was verified on screen:
+
+- **No grey backgrounds / full-size icons** — at placement every ship was a
+  large white icon directly on the water with no grey cell fill behind it.
+- **Status colours** — a player Cruiser that took one hit turned its whole icon
+  green while still afloat; a sunk Destroyer turned red; untouched ships stayed
+  white.
+- **Enemy reveal-on-sink** — a hit-but-not-sunk enemy cell kept the green ✕ with
+  no icon; on sinking, the ship appeared as a red icon over plain water (no red
+  cell background).
+- **Victory** — every enemy ship was revealed as a red icon-only silhouette.
+- **Play Again** — both boards cleared back to empty water and the placement
+  phase.
+- **Regression checks** — no console errors; turn-locking, repeat-shot
+  rejection, HIT!/sunk messages, and win/loss detection all unchanged.
+
+## Bugs found
+
+**None.** All behaviour worked correctly on the first full playthrough and no
+regressions were observed, so there are no before/after bug screenshots. The
+images below are a before/after of the rendering change plus verification
+evidence of each state.
+
+## Before / after — rendering change
+
+**Before (Round 5) — grey ship background behind a white icon, with ✕ overlays on hit/sunk cells:**
+
+![Before: grey background + white icon](docs/images/round5-player-hit-sunk-stretched.png)
+
+**After (Round 6) — no grey; the icon is the ship and its colour shows status (green = hit, red = sunk, white = intact):**
+
+![After: icon-only with status colours](docs/images/round6-player-status-colors.png)
+
+## Verification screenshots
+
+**Placement — full-size white icons on water, no grey backgrounds:**
+
+![Placement, no grey backgrounds](docs/images/round6-placement-no-grey.png)
+
+**Enemy ship revealed on sink — icon-only red silhouette, no cell background:**
+
+![Enemy icon-only reveal](docs/images/round6-enemy-icon-only.png)
+
+**Victory — every enemy ship shown as a red icon-only silhouette:**
+
+![Victory, icon-only enemy fleet](docs/images/round6-victory-icon-only.png)

@@ -353,12 +353,20 @@ export class UI {
     const ship = board.grid[r][c];
     const wasShot = board.shots[r][c];
 
-    if (wasShot && ship) {
-      el.classList.add(ship.hits >= ship.size ? 'sunk' : 'hit');
-    } else if (wasShot && !ship) {
-      el.classList.add('miss');
-    } else if (ship && revealShips) {
-      el.classList.add('ship');
+    if (isEnemy) {
+      // Enemy board: green ✕ for hit-not-sunk; sunk cells have no bg (icon handles it)
+      if (wasShot && ship) {
+        if (ship.hits < ship.size) {
+          el.classList.add('hit');
+        }
+      } else if (wasShot && !ship) {
+        el.classList.add('miss');
+      }
+    } else {
+      // Player board: only show miss dots. Ship/hit/sunk visuals handled by overlay icon.
+      if (wasShot && !ship) {
+        el.classList.add('miss');
+      }
     }
 
     if (isEnemy) {
@@ -387,6 +395,13 @@ export class UI {
 
       const overlay = document.createElement('div');
       overlay.className = 'ship-overlay';
+
+      // Status-based icon colour
+      if (ship.hits >= ship.size) {
+        overlay.classList.add('ship-overlay-sunk');
+      } else if (ship.hits > 0) {
+        overlay.classList.add('ship-overlay-hit');
+      }
 
       // Top-left of the ship's footprint, relative to the board's padding box.
       const left = PAD + (c0 + 1) * STEP;
