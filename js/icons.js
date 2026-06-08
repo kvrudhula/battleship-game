@@ -31,13 +31,19 @@ const cruiser = `
   <circle cx="9" cy="10" r="2" fill="${DETAIL}"/>
 </svg>`;
 
-// Submarine (size 3) — rounded hull with a conning tower.
+// Submarine (size 3) — top-down view: a smooth cigar hull with symmetric bow
+// dive planes and a centered sail (conning tower) seen from above.
 const submarine = `
 <svg viewBox="0 0 38 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <rect x="4" y="7" width="26" height="6" rx="3" fill="currentColor"/>
-  <path d="M29 7 L37 10 L29 13 Z" fill="currentColor"/>
-  <rect x="15" y="4" width="5" height="4" rx="1" fill="${DETAIL}"/>
-  <line x1="17.5" y1="2" x2="17.5" y2="5" stroke="${DETAIL}" stroke-width="1.4"/>
+  <!-- Hull: rounded stern (left), tapered bow (right) -->
+  <path d="M3 10 C3 7 6 6 10 6 H27 C32 6 36 8 36 10 C36 12 32 14 27 14 H10 C6 14 3 13 3 10 Z" fill="currentColor"/>
+  <!-- Bow dive planes, port and starboard (symmetric = top-down) -->
+  <rect x="22" y="3.5" width="4" height="3" rx="1" fill="currentColor"/>
+  <rect x="22" y="13.5" width="4" height="3" rx="1" fill="currentColor"/>
+  <!-- Sail / conning tower seen from above -->
+  <rect x="14" y="7" width="7" height="6" rx="2.5" fill="${DETAIL}"/>
+  <!-- Deck centerline seam -->
+  <line x1="8" y1="10" x2="32" y2="10" stroke="${DETAIL}" stroke-width="0.9" stroke-dasharray="2 2" opacity="0.6"/>
 </svg>`;
 
 // Destroyer (size 2) — small, sleek hull with a bridge and one turret.

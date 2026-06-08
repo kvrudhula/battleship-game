@@ -394,3 +394,66 @@ verification evidence of each state.
 **Victory — full enemy fleet revealed as full-length red icons:**
 
 ![Victory full reveal](docs/images/round7-victory.png)
+
+# Round 8 — Top-down submarine icon
+
+The submarine icon was redrawn as a true top-down (bird's-eye) view to match the
+other ship icons. All other logic and rendering behaviour is unchanged.
+
+## What changed
+
+- **Before:** the submarine SVG was effectively a side profile — a rounded hull
+  with a conning tower box and a **periscope line sticking up above the hull**,
+  which reads as a side view, not a top-down one.
+- **After:** a top-down silhouette — a smooth cigar-shaped hull (rounded stern,
+  tapered bow), a **sail / conning tower centred on the hull** (seen from above),
+  symmetric **bow dive planes on both the port and starboard sides**, and a faint
+  dashed deck centreline. The port/starboard symmetry is what makes it
+  unambiguously top-down.
+
+## Implementation notes
+
+- `js/icons.js` — only the `submarine` SVG constant was replaced. It keeps the
+  same `viewBox` (`0 0 38 20`), uses `currentColor` for the hull (so the existing
+  white / green / red status colouring still applies) and the `DETAIL` colour for
+  the sail and centreline. No other icon or any game/UI logic was touched.
+
+## Testing methodology
+
+Full recorded playthrough (placement → battle → victory → Play Again). Verified
+on screen:
+
+- **Shipyard** — the new top-down submarine icon shows in both the player and
+  enemy shipyards.
+- **Board (stretched)** — the icon stretches correctly across all 3 of the
+  submarine's cells in both orientations, with no empty end squares.
+- **Per-cell hit colour** — hitting the middle cell turned only that cell green;
+  bow and stern stayed white (Round 7 behaviour preserved with the new icon).
+- **Sunk** — once fully hit, the whole submarine icon turned red.
+- **Enemy reveal-on-sink** — the enemy submarine stayed hidden until sunk, then
+  revealed the new icon in red (icon-only, no background).
+- **Victory & Play Again** — full enemy fleet revealed (including the new sub
+  icon); Play Again reset both boards. No console errors.
+
+## Bugs found
+
+**None.** The icon swap rendered correctly on the first playthrough and all
+existing behaviours were preserved. The images below are verification evidence.
+
+## Verification screenshots
+
+**New top-down submarine on the board (cigar hull, centred sail, symmetric dive planes):**
+
+![Top-down submarine on board](docs/images/round8-sub-board.png)
+
+**Per-cell hit — only the struck (middle) cell is green; bow and stern stay white:**
+
+![Submarine per-cell hit](docs/images/round8-sub-hit.png)
+
+**Sunk — the whole submarine turns red:**
+
+![Submarine sunk red](docs/images/round8-sub-sunk.png)
+
+**Victory — enemy fleet revealed, including the new submarine icon (vertical, red):**
+
+![Victory with new sub icon](docs/images/round8-victory.png)
