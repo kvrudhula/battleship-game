@@ -324,3 +324,73 @@ evidence of each state.
 **Victory — every enemy ship shown as a red icon-only silhouette:**
 
 ![Victory, icon-only enemy fleet](docs/images/round6-victory-icon-only.png)
+
+# Round 7 — Full-length icon stretch & per-cell hit colouring
+
+Two refinements to the icon rendering:
+
+1. **Full stretch** — icons now fill their footprint in **both** dimensions, so a
+   vertically-placed Carrier is a full 5 cells high and a horizontal Battleship
+   is a full 4 cells long, with no empty space in the first or last square.
+2. **Per-cell hit colour** — when a ship is hit, only the **portion of the icon
+   in the struck square** turns green. The rest of the ship stays white until it
+   is fully sunk, at which point the **whole** icon turns the sunk colour (red).
+
+## Implementation notes
+
+- `js/ui.js` — `_renderShipOverlays()` now sets `preserveAspectRatio="none"` on
+  each injected `<svg>`, so the icon scales to its container in both axes instead
+  of preserving its natural proportions (which previously left gaps at the ends,
+  especially on vertical ships).
+- `js/ui.js` — per-cell colouring is done with stacked overlay layers instead of
+  one solid-coloured overlay:
+  - a **sunk** ship renders a single red overlay (the whole ship);
+  - a **damaged** ship renders a white base overlay plus, for each hit cell, a
+    green overlay clipped to that cell via
+    `clip-path: inset(0 <right>px 0 <left>px)`, where
+    `left = i * STEP` and `right = span - (i * STEP + CELL)` select exactly the
+    i-th cell's slice of the full-length icon. (For vertical ships the overlay is
+    built horizontally and rotated 90°, so the same horizontal clip maps to the
+    correct vertical cell.)
+
+## Testing methodology
+
+Full recorded playthrough (placement → battle → victory → Play Again). Each
+behaviour verified on screen:
+
+- **Full stretch** — at battle start, vertical and horizontal ships filled their
+  cells edge-to-edge with no empty end squares.
+- **Per-cell green** — firing on individual cells of a horizontal Carrier and a
+  vertical Cruiser turned only those exact squares green; the untouched cells of
+  the same ships stayed white.
+- **Whole-ship red on sink** — once every cell of the Carrier was hit, the entire
+  icon switched to red, while a still-afloat Cruiser kept its single green cell.
+- **Enemy reveal & victory** — enemy ships stayed hidden until sunk, then showed
+  full-length red icons; victory revealed the whole enemy fleet.
+- **Play Again** — both boards reset to empty water.
+- **Regression checks** — no console errors; turn-locking, repeat-shot rejection,
+  HIT!/sunk messages, and win/loss detection unchanged.
+
+## Bugs found
+
+**None.** Both refinements worked correctly on the first full playthrough with no
+regressions, so there are no before/after bug screenshots — the images below are
+verification evidence of each state.
+
+## Verification screenshots
+
+**Full stretch — vertical and horizontal icons fill every cell edge-to-edge:**
+
+![Full-length icon stretch](docs/images/round7-full-stretch.png)
+
+**Per-cell hit colour — only struck squares turn green (Carrier cells 1 & 4, Cruiser middle cell); rest stay white:**
+
+![Per-cell green hits](docs/images/round7-percell-green.png)
+
+**Whole-ship red on sink — the fully-sunk Carrier is all red while the partially-hit Cruiser keeps one green cell:**
+
+![Sunk ship turns fully red](docs/images/round7-sunk-red.png)
+
+**Victory — full enemy fleet revealed as full-length red icons:**
+
+![Victory full reveal](docs/images/round7-victory.png)

@@ -377,7 +377,8 @@ export class UI {
     return el;
   }
 
-  // Renders a single stretched ship icon spanning all cells of each ship.
+  // Renders ship icons that stretch the full length of each ship.
+  // Uses per-cell clip-path layers for individual hit colouring.
   // Player board: always visible. Enemy board: only when the ship is sunk.
   _renderShipOverlays(container, board, revealShips, isEnemy) {
     const CELL = 28;
@@ -393,40 +394,53 @@ export class UI {
       const horiz = ship.orientation === 'horizontal';
       const len = ship.size;
 
-      const overlay = document.createElement('div');
-      overlay.className = 'ship-overlay';
-
-      // Status-based icon colour
-      if (ship.hits >= ship.size) {
-        overlay.classList.add('ship-overlay-sunk');
-      } else if (ship.hits > 0) {
-        overlay.classList.add('ship-overlay-hit');
-      }
-
       // Top-left of the ship's footprint, relative to the board's padding box.
       const left = PAD + (c0 + 1) * STEP;
       const top = PAD + (r0 + 1) * STEP;
       // Length of the ship in px (spanning all of its cells incl. gaps).
       const span = len * CELL + (len - 1) * GAP;
 
-      // The overlay is always built horizontally (width = span, height = CELL),
-      // so the icon stretches across the ship's full length. Vertical ships are
-      // then rotated 90° clockwise about the top-left corner; shifting the
-      // origin right by one cell lands the rotated box back on the footprint.
-      overlay.style.width = `${span}px`;
-      overlay.style.height = `${CELL}px`;
-      if (horiz) {
-        overlay.style.left = `${left}px`;
-        overlay.style.top = `${top}px`;
-      } else {
-        overlay.style.left = `${left + CELL}px`;
-        overlay.style.top = `${top}px`;
-        overlay.style.transformOrigin = 'top left';
-        overlay.style.transform = 'rotate(90deg)';
-      }
+      const isSunk = ship.hits >= ship.size;
 
-      overlay.innerHTML = SHIP_ICONS[ship.id] || '';
-      container.appendChild(overlay);
+      // Helper: creates one overlay layer with the full icon inside.
+      const makeLayer = (colorClass) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'ship-overlay' + (colorClass ? ' ' + colorClass : '');
+        overlay.style.width = `${span}px`;
+        overlay.style.height = `${CELL}px`;
+        if (horiz) {
+          overlay.style.left = `${left}px`;
+          overlay.style.top = `${top}px`;
+        } else {
+          overlay.style.left = `${left + CELL}px`;
+          overlay.style.top = `${top}px`;
+          overlay.style.transformOrigin = 'top left';
+          overlay.style.transform = 'rotate(90deg)';
+        }
+        overlay.innerHTML = SHIP_ICONS[ship.id] || '';
+        // Force SVG to stretch without preserving aspect ratio
+        const svg = overlay.querySelector('svg');
+        if (svg) svg.setAttribute('preserveAspectRatio', 'none');
+        return overlay;
+      };
+
+      if (isSunk) {
+        // Sunk: one full overlay in red
+        container.appendChild(makeLayer('ship-overlay-sunk'));
+      } else {
+        // Base layer: white (intact portions)
+        container.appendChild(makeLayer(''));
+        // Hit layers: one green clip per hit cell
+        for (let i = 0; i < len; i++) {
+          const [cr, cc] = ship.cells[i];
+          if (!board.shots[cr][cc]) continue;
+          const clipLeft = i * STEP;
+          const clipRight = span - (i * STEP + CELL);
+          const layer = makeLayer('ship-overlay-hit');
+          layer.style.clipPath = `inset(0 ${clipRight}px 0 ${clipLeft}px)`;
+          container.appendChild(layer);
+        }
+      }
     }
   }
 
