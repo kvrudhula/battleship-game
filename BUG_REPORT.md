@@ -45,3 +45,43 @@ straightforward to validate each layer independently.
 The game ships without any known functional bugs. All edge cases — invalid
 placement, out-of-bounds attacks, repeated shots, and win/loss detection — are
 handled correctly and surfaced clearly in the UI.
+
+---
+
+# Round 3 — Battle-phase UI refinements
+
+This round added six battle-phase features: the player shipyard now clears its
+placement status and tracks sunk ships; hit cells render green instead of red;
+a "HIT!" flash with a missile graphic plays on a hit; "You sunk their X!" /
+"They sunk your X!" flashes play on a sink; and each ship has a custom top-down
+icon shown in both shipyards (player icons always visible, enemy icons revealed
+only when that ship is sunk).
+
+## Testing methodology
+
+- **Browser end-to-end playthrough** — placed a fleet, fought a full battle to a
+  victory, and verified each feature on screen:
+  - Player shipyard reset to a clean icon list at battle start, then marked the
+    Submarine and Destroyer as sunk (red, struck-through) when the AI sank them.
+  - Hit cells rendered green; the "HIT!" overlay with a missile appeared on hits.
+  - "You sunk their Destroyer!" appeared with the destroyer icon, and the enemy
+    shipyard revealed the destroyer icon on the sink.
+  - "They sunk your Submarine!" appeared with the submarine icon when the AI
+    sank a player ship.
+  - Victory detection, full enemy-fleet reveal, and Play Again reset all worked.
+- **Regression checks** —
+  - Turn-locking: the `busy` flag is set after a valid shot and the enemy-cell
+    click handler rejects clicks while busy, so the longer post-hit delay
+    (1300 ms after a hit vs 600 ms after a miss) cannot cause a double-fire.
+  - Repeat shots are still rejected before the turn is consumed (no flash, no
+    AI turn).
+  - No console errors during a full game.
+  - Core game logic (AI hunt-and-target, win/loss detection) is unchanged.
+
+## Bugs found
+
+**None.** All six features behaved correctly on the first full playthrough, and
+no regressions were observed in placement, firing, or win/loss handling. Because
+no bug occurred, there are no before/after bug screenshots; instead, screenshots
+of each feature working were captured as verification evidence and a full
+playthrough was recorded.

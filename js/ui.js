@@ -3,6 +3,7 @@
 
 import { Game, PHASE } from './game.js';
 import { SHIPS, ORIENTATION, ATTACK_RESULT, BOARD_SIZE } from './constants.js';
+import { SHIP_ICONS, HIDDEN_ICON, MISSILE_ICON } from './icons.js';
 
 const COLUMN_LABELS = 'ABCDEFGHIJ';
 
@@ -29,8 +30,13 @@ export class UI {
     this.mainBtn = document.getElementById('main-btn');
     this.overlayEl = document.getElementById('overlay');
     this.overlayText = document.getElementById('overlay-text');
+    this.flashEl = document.getElementById('flash-overlay');
+    this.flashContent = document.getElementById('flash-content');
+    this.flashText = document.getElementById('flash-text');
+    this.flashIcon = document.getElementById('flash-icon');
     this.playerShipyardList = document.getElementById('player-shipyard-list');
     this.enemyShipyardList = document.getElementById('enemy-shipyard-list');
+    this._flashTimer = null;
   }
 
   _bindEvents() {
@@ -97,6 +103,42 @@ export class UI {
       this.overlayEl.classList.add('hidden');
       if (callback) callback();
     }, 1500);
+  }
+
+  // A brief, non-blocking flash shown on a hit or sink. `type` is 'hit' or
+  // 'sunk'; `iconHtml` is optional SVG markup shown to the right of the text.
+  _showFlash(text, type, iconHtml = '') {
+    clearTimeout(this._flashTimer);
+    this.flashText.textContent = text;
+    this.flashIcon.innerHTML = iconHtml;
+    this.flashContent.className = `flash-content ${type}`;
+    this.flashEl.classList.remove('hidden');
+    // Restart the CSS animation each time the flash is shown.
+    this.flashContent.style.animation = 'none';
+    void this.flashContent.offsetWidth;
+    this.flashContent.style.animation = '';
+    this._flashTimer = setTimeout(() => {
+      this.flashEl.classList.add('hidden');
+    }, 1100);
+  }
+
+  // Picks the right flash for a shot outcome. `who` is 'player' or 'ai'.
+  _flashForOutcome(outcome, who) {
+    if (outcome.result === ATTACK_RESULT.SUNK && outcome.sunkShip) {
+      const name = outcome.sunkShip.name;
+      const icon = SHIP_ICONS[outcome.sunkShip.id] || '';
+      const text =
+        who === 'player'
+          ? `You sunk their ${name}!`
+          : `They sunk your ${name}!`;
+      this._showFlash(text, 'sunk', icon);
+      return true;
+    }
+    if (outcome.result === ATTACK_RESULT.HIT) {
+      this._showFlash('HIT!', 'hit', MISSILE_ICON);
+      return true;
+    }
+    return false;
   }
 
   // ---- Rendering --------------------------------------------------------
@@ -181,48 +223,76 @@ export class UI {
     this._renderEnemyShipyard();
   }
 
+  // Builds the icon element for a shipyard item. `iconHtml` is the SVG markup;
+  // pass `hidden` to render it in the muted "unknown" state.
+  _shipIcon(iconHtml, hidden = false) {
+    const icon = document.createElement('span');
+    icon.className = hidden ? 'ship-icon hidden-icon' : 'ship-icon';
+    icon.innerHTML = iconHtml;
+    return icon;
+  }
+
+  // Builds the name + size-dots column for a shipyard item.
+  _shipMeta(ship) {
+    const meta = document.createElement('span');
+    meta.className = 'ship-meta';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'ship-name';
+    nameSpan.textContent = ship.name;
+    meta.appendChild(nameSpan);
+
+    const dots = document.createElement('span');
+    dots.className = 'ship-dots';
+    for (let i = 0; i < ship.size; i++) {
+      const dot = document.createElement('span');
+      dot.className = 'ship-dot';
+      dots.appendChild(dot);
+    }
+    meta.appendChild(dots);
+    return meta;
+  }
+
   _renderPlayerShipyard() {
     const list = this.playerShipyardList;
     list.innerHTML = '';
     const phase = this.game.phase;
+    // Once the battle begins, the shipyard stops tracking placement and starts
+    // tracking which of the player's ships have been sunk.
+    const inBattle = phase === PHASE.PLAYING || phase === PHASE.OVER;
 
     for (const ship of SHIPS) {
       const li = document.createElement('li');
       li.className = 'shipyard-item';
 
-      const isPlaced = this.game.placedShipIds.has(ship.id);
-      const isSelected = this.game.selectedShipId === ship.id;
+      if (inBattle) {
+        const shipObj = this.game.playerBoard.ships.find((s) => s.id === ship.id);
+        if (shipObj && shipObj.hits >= shipObj.size) {
+          li.classList.add('sunk-ally');
+        }
+      } else {
+        const isPlaced = this.game.placedShipIds.has(ship.id);
+        const isSelected = this.game.selectedShipId === ship.id;
 
-      if (isPlaced) {
-        li.classList.add('placed');
-      } else if (isSelected) {
-        li.classList.add('selected');
+        if (isPlaced) {
+          li.classList.add('placed');
+        } else if (isSelected) {
+          li.classList.add('selected');
+        }
+
+        // Make unplaced ships clickable during placement.
+        if (phase === PHASE.PLACEMENT && !isPlaced) {
+          li.classList.add('selectable');
+          li.addEventListener('click', () => {
+            this.game.selectShip(ship.id);
+            this.render();
+          });
+        }
       }
 
-      // Make unplaced ships clickable during placement.
-      if (phase === PHASE.PLACEMENT && !isPlaced) {
-        li.classList.add('selectable');
-        li.addEventListener('click', () => {
-          this.game.selectShip(ship.id);
-          this.render();
-        });
-      }
-
-      // Ship name.
-      const nameSpan = document.createElement('span');
-      nameSpan.textContent = ship.name;
-      li.appendChild(nameSpan);
-
-      // Dots representing ship size.
-      const dots = document.createElement('span');
-      dots.className = 'ship-dots';
-      for (let i = 0; i < ship.size; i++) {
-        const dot = document.createElement('span');
-        dot.className = 'ship-dot';
-        dots.appendChild(dot);
-      }
-      li.appendChild(dots);
-
+      // The player's own ship icons are always visible.
+      li.appendChild(this._shipIcon(SHIP_ICONS[ship.id]));
+      li.appendChild(this._shipMeta(ship));
       list.appendChild(li);
     }
   }
@@ -235,25 +305,16 @@ export class UI {
       const li = document.createElement('li');
       li.className = 'shipyard-item';
 
-      // Check if this enemy ship has been sunk.
+      // Reveal the enemy ship's icon only once it has been sunk.
       const enemyShip = this.game.aiBoard.ships.find((s) => s.id === ship.id);
-      if (enemyShip && enemyShip.hits >= enemyShip.size) {
-        li.classList.add('sunk-enemy');
-      }
+      const isSunk = enemyShip && enemyShip.hits >= enemyShip.size;
+      if (isSunk) li.classList.add('sunk-enemy');
 
-      const nameSpan = document.createElement('span');
-      nameSpan.textContent = ship.name;
-      li.appendChild(nameSpan);
-
-      const dots = document.createElement('span');
-      dots.className = 'ship-dots';
-      for (let i = 0; i < ship.size; i++) {
-        const dot = document.createElement('span');
-        dot.className = 'ship-dot';
-        dots.appendChild(dot);
-      }
-      li.appendChild(dots);
-
+      const icon = isSunk
+        ? this._shipIcon(SHIP_ICONS[ship.id])
+        : this._shipIcon(HIDDEN_ICON, true);
+      li.appendChild(icon);
+      li.appendChild(this._shipMeta(ship));
       list.appendChild(li);
     }
   }
@@ -373,6 +434,7 @@ export class UI {
 
     this._logShot('You', r, c, outcome);
     this.render();
+    const flashed = this._flashForOutcome(outcome, 'player');
 
     if (outcome.gameOver) {
       this.log('You win! Every enemy ship is sunk.');
@@ -381,7 +443,8 @@ export class UI {
 
     this.busy = true;
     this.render();
-    setTimeout(() => this._runAiTurn(), 600);
+    // Give a flash time to play before the AI fires (and shows its own flash).
+    setTimeout(() => this._runAiTurn(), flashed ? 1300 : 600);
   }
 
   _runAiTurn() {
@@ -389,6 +452,7 @@ export class UI {
     this._logShot('Enemy', outcome.row, outcome.col, outcome);
     this.busy = false;
     this.render();
+    this._flashForOutcome(outcome, 'ai');
 
     if (outcome.gameOver) {
       this.log('The enemy sank your fleet. Better luck next time!');
