@@ -1,6 +1,5 @@
 // ui.js
-// The UI class owns all DOM rendering and user interaction. It talks to the
-// Game controller for rules/state and never manipulates game state directly.
+// Handles all DOM rendering, user interaction, overlays, and shipyard panels.
 
 import { Game, PHASE } from './game.js';
 import { SHIPS, ORIENTATION, ATTACK_RESULT, BOARD_SIZE } from './constants.js';
@@ -10,9 +9,7 @@ const COLUMN_LABELS = 'ABCDEFGHIJ';
 export class UI {
   constructor() {
     this.game = new Game();
-    // Orientation used for the next player ship placement.
     this.orientation = ORIENTATION.HORIZONTAL;
-    // Whether the AI is mid-turn (used to lock the board against double input).
     this.busy = false;
 
     this._cacheDom();
@@ -29,8 +26,11 @@ export class UI {
     this.rotateBtn = document.getElementById('rotate-btn');
     this.randomBtn = document.getElementById('random-btn');
     this.clearBtn = document.getElementById('clear-btn');
-    this.startBtn = document.getElementById('start-btn');
-    this.playAgainBtn = document.getElementById('play-again-btn');
+    this.mainBtn = document.getElementById('main-btn');
+    this.overlayEl = document.getElementById('overlay');
+    this.overlayText = document.getElementById('overlay-text');
+    this.playerShipyardList = document.getElementById('player-shipyard-list');
+    this.enemyShipyardList = document.getElementById('enemy-shipyard-list');
   }
 
   _bindEvents() {
@@ -52,79 +52,221 @@ export class UI {
       this.render();
     });
 
-    this.startBtn.addEventListener('click', () => {
-      if (this.game.startBattle()) {
+    this.mainBtn.addEventListener('click', () => this._handleMainBtn());
+  }
+
+  // The main button cycles through states: Place Ships → Start Game → Play Again.
+  _handleMainBtn() {
+    const phase = this.game.phase;
+
+    if (phase === PHASE.INITIAL) {
+      // "Place Ships" clicked → show Phase 1 overlay, then enter placement.
+      this.game.beginPlacement();
+      this._showOverlay('Phase 1: Place your ships', () => {
+        this.render();
+      });
+      return;
+    }
+
+    if (phase === PHASE.PLACEMENT && this.game.allShipsPlaced) {
+      // "Start Game" clicked → show "Time to Battle!" then start playing.
+      this.game.startBattle();
+      this._showOverlay('Time to Battle!', () => {
         this.log('Battle started! Fire at the enemy waters.');
         this.render();
-      }
-    });
+      });
+      return;
+    }
 
-    this.playAgainBtn.addEventListener('click', () => {
+    if (phase === PHASE.OVER) {
+      // "Play Again" clicked.
       this.game.reset();
       this.orientation = ORIENTATION.HORIZONTAL;
       this.busy = false;
       this.clearLog();
       this.render();
-    });
+    }
   }
 
-  // ---- Rendering ---------------------------------------------------------
+  // ---- Overlay ----------------------------------------------------------
+
+  _showOverlay(text, callback) {
+    this.overlayText.textContent = text;
+    this.overlayEl.classList.remove('hidden');
+    setTimeout(() => {
+      this.overlayEl.classList.add('hidden');
+      if (callback) callback();
+    }, 1500);
+  }
+
+  // ---- Rendering --------------------------------------------------------
 
   render() {
+    this._renderMainBtn();
     this._renderControls();
     this._renderStatus();
+    this._renderShipyards();
     this._renderBoard(this.playerBoardEl, this.game.playerBoard, {
       revealShips: true,
       isEnemy: false,
     });
     this._renderBoard(this.enemyBoardEl, this.game.aiBoard, {
-      // Only reveal the enemy fleet once the game is over.
       revealShips: this.game.phase === PHASE.OVER,
       isEnemy: true,
     });
   }
 
+  _renderMainBtn() {
+    const phase = this.game.phase;
+    const btn = this.mainBtn;
+
+    if (phase === PHASE.INITIAL) {
+      btn.textContent = 'Place Ships';
+      btn.className = 'btn-green';
+      btn.disabled = false;
+      btn.style.display = 'inline-block';
+    } else if (phase === PHASE.PLACEMENT) {
+      btn.textContent = 'Start Game';
+      if (this.game.allShipsPlaced) {
+        btn.className = 'btn-green';
+        btn.disabled = false;
+      } else {
+        btn.className = 'btn-disabled';
+        btn.disabled = true;
+      }
+      btn.style.display = 'inline-block';
+    } else if (phase === PHASE.PLAYING) {
+      btn.style.display = 'none';
+    } else if (phase === PHASE.OVER) {
+      btn.textContent = 'Play Again';
+      btn.className = 'btn-green';
+      btn.disabled = false;
+      btn.style.display = 'inline-block';
+    }
+  }
+
   _renderControls() {
-    const inPlacement = this.game.phase === PHASE.PLACEMENT;
-    this.placementControls.style.display = inPlacement ? 'flex' : 'none';
-    this.startBtn.disabled = !this.game.allShipsPlaced;
-    this.playAgainBtn.style.display =
-      this.game.phase === PHASE.OVER ? 'inline-block' : 'none';
+    const showToolbar = this.game.phase === PHASE.PLACEMENT;
+    this.placementControls.style.display = showToolbar ? 'flex' : 'none';
   }
 
   _renderStatus() {
     let msg = '';
-    if (this.game.phase === PHASE.PLACEMENT) {
+    const phase = this.game.phase;
+
+    if (phase === PHASE.INITIAL) {
+      msg = 'Click "Place Ships" to begin setting up your fleet.';
+    } else if (phase === PHASE.PLACEMENT) {
       const ship = this.game.currentShipToPlace;
       if (ship) {
         msg = `Place your ${ship.name} (size ${ship.size}). Orientation: ${this.orientation}.`;
       } else {
         msg = 'All ships placed. Press "Start Game" to begin!';
       }
-    } else if (this.game.phase === PHASE.PLAYING) {
+    } else if (phase === PHASE.PLAYING) {
       msg = 'Your turn — click the enemy board to fire.';
-    } else if (this.game.phase === PHASE.OVER) {
+    } else if (phase === PHASE.OVER) {
       msg =
         this.game.winner === 'player'
-          ? '🎉 Victory! You sank the entire enemy fleet.'
-          : '💥 Defeat! The enemy sank your fleet.';
+          ? 'Victory! You sank the entire enemy fleet.'
+          : 'Defeat! The enemy sank your fleet.';
     }
     this.statusEl.textContent = msg;
   }
 
-  // Builds an 11x11 grid (labels + cells) for a board and wires interactions.
+  // ---- Shipyard panels --------------------------------------------------
+
+  _renderShipyards() {
+    this._renderPlayerShipyard();
+    this._renderEnemyShipyard();
+  }
+
+  _renderPlayerShipyard() {
+    const list = this.playerShipyardList;
+    list.innerHTML = '';
+    const phase = this.game.phase;
+
+    for (const ship of SHIPS) {
+      const li = document.createElement('li');
+      li.className = 'shipyard-item';
+
+      const isPlaced = this.game.placedShipIds.has(ship.id);
+      const isSelected = this.game.selectedShipId === ship.id;
+
+      if (isPlaced) {
+        li.classList.add('placed');
+      } else if (isSelected) {
+        li.classList.add('selected');
+      }
+
+      // Make unplaced ships clickable during placement.
+      if (phase === PHASE.PLACEMENT && !isPlaced) {
+        li.classList.add('selectable');
+        li.addEventListener('click', () => {
+          this.game.selectShip(ship.id);
+          this.render();
+        });
+      }
+
+      // Ship name.
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = ship.name;
+      li.appendChild(nameSpan);
+
+      // Dots representing ship size.
+      const dots = document.createElement('span');
+      dots.className = 'ship-dots';
+      for (let i = 0; i < ship.size; i++) {
+        const dot = document.createElement('span');
+        dot.className = 'ship-dot';
+        dots.appendChild(dot);
+      }
+      li.appendChild(dots);
+
+      list.appendChild(li);
+    }
+  }
+
+  _renderEnemyShipyard() {
+    const list = this.enemyShipyardList;
+    list.innerHTML = '';
+
+    for (const ship of SHIPS) {
+      const li = document.createElement('li');
+      li.className = 'shipyard-item';
+
+      // Check if this enemy ship has been sunk.
+      const enemyShip = this.game.aiBoard.ships.find((s) => s.id === ship.id);
+      if (enemyShip && enemyShip.hits >= enemyShip.size) {
+        li.classList.add('sunk-enemy');
+      }
+
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = ship.name;
+      li.appendChild(nameSpan);
+
+      const dots = document.createElement('span');
+      dots.className = 'ship-dots';
+      for (let i = 0; i < ship.size; i++) {
+        const dot = document.createElement('span');
+        dot.className = 'ship-dot';
+        dots.appendChild(dot);
+      }
+      li.appendChild(dots);
+
+      list.appendChild(li);
+    }
+  }
+
+  // ---- Board rendering --------------------------------------------------
+
   _renderBoard(container, board, { revealShips, isEnemy }) {
     container.innerHTML = '';
-
-    // Top-left corner spacer.
     container.appendChild(this._labelCell(''));
-    // Column headers A–J.
     for (let c = 0; c < BOARD_SIZE; c++) {
       container.appendChild(this._labelCell(COLUMN_LABELS[c]));
     }
-
     for (let r = 0; r < BOARD_SIZE; r++) {
-      // Row header 1–10.
       container.appendChild(this._labelCell(String(r + 1)));
       for (let c = 0; c < BOARD_SIZE; c++) {
         container.appendChild(this._gameCell(board, r, c, revealShips, isEnemy));
@@ -168,7 +310,7 @@ export class UI {
 
   _wirePlacementCell(el, r, c) {
     const shipDef = this.game.currentShipToPlace;
-    if (!shipDef) return; // All ships placed; nothing to preview.
+    if (!shipDef) return;
 
     el.classList.add('placeable');
 
@@ -189,16 +331,10 @@ export class UI {
 
   _previewPlacement(r, c, shipDef) {
     const cells = this.game.playerBoard.computeCells(
-      r,
-      c,
-      shipDef.size,
-      this.orientation
+      r, c, shipDef.size, this.orientation
     );
     const valid = this.game.playerBoard.canPlaceShip(
-      r,
-      c,
-      shipDef.size,
-      this.orientation
+      r, c, shipDef.size, this.orientation
     );
     for (const [pr, pc] of cells) {
       const sel = `[data-row="${pr}"][data-col="${pc}"]`;
@@ -239,13 +375,12 @@ export class UI {
     this.render();
 
     if (outcome.gameOver) {
-      this.log('🎉 You win! Every enemy ship is sunk.');
+      this.log('You win! Every enemy ship is sunk.');
       return;
     }
 
-    // Hand the turn to the AI after a short pause so the player can follow.
     this.busy = true;
-    this.render(); // Re-render to disable targeting while the AI "thinks".
+    this.render();
     setTimeout(() => this._runAiTurn(), 600);
   }
 
@@ -256,7 +391,7 @@ export class UI {
     this.render();
 
     if (outcome.gameOver) {
-      this.log('💥 The enemy sank your fleet. Better luck next time!');
+      this.log('The enemy sank your fleet. Better luck next time!');
     }
   }
 

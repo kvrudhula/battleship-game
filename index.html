@@ -13,31 +13,49 @@
     </header>
 
     <main class="layout">
-      <!-- Status line + placement controls -->
+      <!-- Phase overlays -->
+      <div id="overlay" class="overlay hidden">
+        <div class="overlay-content">
+          <h2 id="overlay-text"></h2>
+        </div>
+      </div>
+
+      <!-- Status + main action button -->
       <section class="control-panel">
         <p id="status" class="status"></p>
 
-        <div id="placement-controls" class="placement-controls">
+        <div class="button-row">
+          <button id="main-btn" type="button" class="btn-green">Place Ships</button>
+        </div>
+
+        <!-- Placement toolbar (rotate, random, clear) — shown only during placement -->
+        <div id="placement-controls" class="placement-controls" style="display:none">
           <button id="rotate-btn" type="button">Rotate ship</button>
           <button id="random-btn" type="button">Random placement</button>
           <button id="clear-btn" type="button">Clear board</button>
-          <button id="start-btn" type="button" class="primary">Start Game</button>
         </div>
-
-        <button id="play-again-btn" type="button" class="primary" style="display: none">
-          Play Again
-        </button>
       </section>
 
-      <!-- The two boards -->
-      <section class="boards">
+      <!-- Boards area: shipyard | player board | enemy board | shipyard -->
+      <section class="boards-area">
+        <div id="player-shipyard" class="shipyard">
+          <h3>Your Shipyard</h3>
+          <ul id="player-shipyard-list" class="shipyard-list"></ul>
+        </div>
+
         <div class="board-wrap">
           <h2>Your Fleet</h2>
           <div id="player-board" class="board" aria-label="Your board"></div>
         </div>
+
         <div class="board-wrap">
           <h2>Enemy Waters</h2>
           <div id="enemy-board" class="board" aria-label="Enemy board"></div>
+        </div>
+
+        <div id="enemy-shipyard" class="shipyard">
+          <h3>Enemy Fleet</h3>
+          <ul id="enemy-shipyard-list" class="shipyard-list"></ul>
         </div>
       </section>
 

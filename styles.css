@@ -13,7 +13,7 @@
   --bad: #f97316;
   --text: #e2e8f0;
   --accent: #38bdf8;
-  --cell: 32px;
+  --cell: 28px;
 }
 
 * {
@@ -46,15 +46,55 @@ body {
 }
 
 .layout {
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 0 16px;
+  position: relative;
+}
+
+/* ---- Overlay ---- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.92);
+  animation: overlayIn 0.3s ease;
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+.overlay-content {
+  text-align: center;
+  padding: 40px 60px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 60px rgba(56, 189, 248, 0.3);
+}
+
+.overlay-content h2 {
+  margin: 0;
+  font-size: 2.4rem;
+  letter-spacing: 2px;
+  color: var(--accent);
+  text-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 /* ---- Control panel ---- */
 .control-panel {
   text-align: center;
   margin: 16px 0;
+  min-height: 90px;
 }
 
 .status {
@@ -62,6 +102,10 @@ body {
   font-weight: 600;
   min-height: 1.4em;
   margin: 8px 0 16px;
+}
+
+.button-row {
+  margin-bottom: 12px;
 }
 
 .placement-controls {
@@ -79,7 +123,7 @@ button {
   padding: 10px 16px;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: background 0.15s, transform 0.05s;
+  transition: background 0.15s, transform 0.05s, opacity 0.2s;
 }
 
 button:hover:not(:disabled) {
@@ -95,6 +139,32 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Green button (Place Ships initial, Start Game when ready) */
+.btn-green {
+  background: #22c55e;
+  color: #052e16;
+  border-color: #22c55e;
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 12px 28px;
+}
+
+.btn-green:hover:not(:disabled) {
+  background: #4ade80;
+}
+
+/* Greyed-out "Start Game" during placement */
+.btn-disabled {
+  background: #475569;
+  color: #94a3b8;
+  border-color: #475569;
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 12px 28px;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 button.primary {
   background: var(--accent);
   color: #08263a;
@@ -106,11 +176,12 @@ button.primary:hover:not(:disabled) {
   background: #7dd3fc;
 }
 
-/* ---- Boards ---- */
-.boards {
+/* ---- Boards area (with shipyards) ---- */
+.boards-area {
   display: flex;
-  gap: 32px;
+  gap: 16px;
   justify-content: center;
+  align-items: flex-start;
   flex-wrap: wrap;
 }
 
@@ -135,6 +206,89 @@ button.primary:hover:not(:disabled) {
   user-select: none;
 }
 
+/* ---- Shipyard panels ---- */
+.shipyard {
+  min-width: 130px;
+  padding-top: 30px;
+}
+
+.shipyard h3 {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  color: var(--accent);
+  text-align: center;
+}
+
+.shipyard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shipyard-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--panel);
+  border: 2px solid transparent;
+  font-size: 0.85rem;
+  transition: border-color 0.15s, opacity 0.2s;
+}
+
+.shipyard-item.selectable {
+  cursor: pointer;
+}
+
+.shipyard-item.selectable:hover {
+  border-color: var(--accent);
+}
+
+.shipyard-item.selected {
+  border-color: var(--ok);
+  background: #1a3a2a;
+}
+
+.shipyard-item.placed {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.shipyard-item.sunk-enemy {
+  opacity: 0.4;
+  text-decoration: line-through;
+  color: var(--hit);
+}
+
+.ship-dots {
+  display: flex;
+  gap: 2px;
+}
+
+.ship-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--ship);
+}
+
+.shipyard-item.placed .ship-dot {
+  background: #475569;
+}
+
+.shipyard-item.selected .ship-dot {
+  background: var(--ok);
+}
+
+.shipyard-item.sunk-enemy .ship-dot {
+  background: var(--sunk);
+}
+
+/* ---- Board cells ---- */
 .cell {
   width: var(--cell);
   height: var(--cell);
@@ -146,7 +300,6 @@ button.primary:hover:not(:disabled) {
   background: var(--water);
 }
 
-/* Coordinate labels (row numbers / column letters). */
 .cell.label {
   background: transparent;
   color: #64748b;
@@ -162,7 +315,7 @@ button.primary:hover:not(:disabled) {
 }
 
 .cell.hit::after {
-  content: "✕";
+  content: "\2715";
   color: #fff;
   font-weight: 700;
 }
@@ -172,7 +325,7 @@ button.primary:hover:not(:disabled) {
 }
 
 .cell.sunk::after {
-  content: "✕";
+  content: "\2715";
   color: #fca5a5;
   font-weight: 700;
 }
@@ -182,12 +335,12 @@ button.primary:hover:not(:disabled) {
 }
 
 .cell.miss::after {
-  content: "•";
+  content: "\2022";
   color: var(--miss);
   font-size: 1.2rem;
 }
 
-/* Interactive states. */
+/* Interactive states */
 .cell.placeable:hover {
   outline: 2px solid var(--accent);
 }

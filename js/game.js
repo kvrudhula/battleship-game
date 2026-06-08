@@ -8,7 +8,8 @@ import { AIPlayer } from './ai.js';
 import { SHIPS, ATTACK_RESULT } from './constants.js';
 
 export const PHASE = {
-  PLACEMENT: 'placement', // Player is still placing ships.
+  INITIAL: 'initial', // Waiting for player to click "Place Ships".
+  PLACEMENT: 'placement', // Player is placing ships.
   PLAYING: 'playing', // Battle in progress.
   OVER: 'over', // Someone has won.
 };
@@ -18,65 +19,91 @@ export class Game {
     this.reset();
   }
 
-  // Starts a brand new game in the placement phase.
   reset() {
     this.playerBoard = new Board();
     this.aiBoard = new Board();
     this.ai = new AIPlayer();
-    this.phase = PHASE.PLACEMENT;
-    this.winner = null; // 'player' | 'ai'
-    // Index into SHIPS for the next ship the player must place.
-    this.placementIndex = 0;
-    // The AI's fleet is placed up front and stays hidden until the game ends.
+    this.phase = PHASE.INITIAL;
+    this.winner = null;
+    // Track which ships have been placed by ID.
+    this.placedShipIds = new Set();
+    // The currently selected ship (set by the player via shipyard).
+    this.selectedShipId = null;
+    // The AI's fleet is placed up front.
     placeShipsRandomly(this.aiBoard, SHIPS);
   }
 
-  // The ship definition the player should place next, or null if done.
+  // Transition from INITIAL → PLACEMENT.
+  beginPlacement() {
+    if (this.phase !== PHASE.INITIAL) return false;
+    this.phase = PHASE.PLACEMENT;
+    // Auto-select the first ship.
+    this.selectedShipId = SHIPS[0].id;
+    return true;
+  }
+
+  // Select which ship to place next (called from shipyard click).
+  selectShip(shipId) {
+    if (this.phase !== PHASE.PLACEMENT) return false;
+    if (this.placedShipIds.has(shipId)) return false; // Already placed.
+    this.selectedShipId = shipId;
+    return true;
+  }
+
+  // Returns the ship definition for the currently selected ship, or null.
   get currentShipToPlace() {
-    return SHIPS[this.placementIndex] || null;
+    if (!this.selectedShipId) return null;
+    return SHIPS.find((s) => s.id === this.selectedShipId) || null;
   }
 
-  // True once the player has placed all five ships.
+  // True once all 5 ships are placed.
   get allShipsPlaced() {
-    return this.placementIndex >= SHIPS.length;
+    return this.placedShipIds.size >= SHIPS.length;
   }
 
-  // Attempts to place the player's current ship. Returns true on success.
+  // Attempts to place the selected ship at the given position.
   placePlayerShip(row, col, orientation) {
     if (this.phase !== PHASE.PLACEMENT) return false;
     const shipDef = this.currentShipToPlace;
     if (!shipDef) return false;
     const ship = this.playerBoard.placeShip(shipDef, row, col, orientation);
-    if (!ship) return false; // Invalid placement (overlap / out of bounds).
-    this.placementIndex += 1;
+    if (!ship) return false;
+    this.placedShipIds.add(shipDef.id);
+    // Auto-select the next unplaced ship.
+    this._autoSelectNext();
     return true;
   }
 
-  // Randomizes the player's entire fleet (clears any manual placement).
+  // Auto-select the first unplaced ship (in standard order).
+  _autoSelectNext() {
+    const next = SHIPS.find((s) => !this.placedShipIds.has(s.id));
+    this.selectedShipId = next ? next.id : null;
+  }
+
+  // Randomizes the player's entire fleet.
   randomizePlayerShips() {
     if (this.phase !== PHASE.PLACEMENT) return;
     placeShipsRandomly(this.playerBoard, SHIPS);
-    this.placementIndex = SHIPS.length;
+    this.placedShipIds = new Set(SHIPS.map((s) => s.id));
+    this.selectedShipId = null;
   }
 
   // Clears the player's board so they can place again from scratch.
   clearPlayerShips() {
     if (this.phase !== PHASE.PLACEMENT) return;
     this.playerBoard.reset();
-    this.placementIndex = 0;
+    this.placedShipIds.clear();
+    this.selectedShipId = SHIPS[0].id;
   }
 
-  // Transitions from placement to the battle phase. Returns false if the
-  // player has not finished placing their fleet.
+  // Transitions to battle phase.
   startBattle() {
     if (this.phase !== PHASE.PLACEMENT || !this.allShipsPlaced) return false;
     this.phase = PHASE.PLAYING;
     return true;
   }
 
-  // The player fires at the AI's board at (row, col).
-  // Returns { result, sunkShip, gameOver } where result is an ATTACK_RESULT.
-  // A REPEAT result means the shot was ignored and the player keeps their turn.
+  // Player fires at the AI's board.
   playerFire(row, col) {
     if (this.phase !== PHASE.PLAYING) {
       return { result: ATTACK_RESULT.REPEAT, gameOver: false };
@@ -99,8 +126,7 @@ export class Game {
     return { result, sunkShip, gameOver: false };
   }
 
-  // The AI takes a single shot at the player's board.
-  // Returns { row, col, result, sunkShip, gameOver }.
+  // AI fires at the player's board.
   aiFire() {
     if (this.phase !== PHASE.PLAYING) {
       return { gameOver: this.phase === PHASE.OVER };
