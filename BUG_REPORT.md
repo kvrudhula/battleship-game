@@ -616,3 +616,78 @@ respond). Console was clean throughout.
 **After fix — enemy's turn reads "Enemy's turn — incoming fire!":**
 
 ![Fixed: Enemy's turn](docs/images/round10-fix-enemy-turn.png)
+
+# Round 11 — Reveal surviving enemy ships on a loss + faster AI delay
+
+## What changed
+
+1. **Reveal the enemy's surviving ships when the player loses.** When the AI
+   wins, the enemy board now reveals every ship that was not sunk. Fully intact
+   ships are shown in white; partially-hit ships reveal only their remaining
+   (un-hit) cells in white, while the cells that were already hit keep their hit
+   colour (green). (On a win this is a no-op — every enemy ship is already sunk.)
+2. **Reduced the AI "thinking" delay** to roughly halfway between the original
+   and the Round 10 values — ~1.0s after a miss / ~1.65s after a hit.
+
+## Implementation notes
+
+- `js/ui.js` — `_renderShipOverlays(container, board, revealShips, isEnemy)`
+  previously only drew an enemy ship's icon once it was sunk
+  (`show = ship.hits >= ship.size`). It now also shows surviving enemy ships when
+  the game is over and the AI won:
+
+  ```js
+  const revealOnLoss =
+    isEnemy && this.game.phase === PHASE.OVER && this.game.winner === 'ai';
+  const show = isEnemy
+    ? ship.hits >= ship.size || revealOnLoss
+    : revealShips;
+  ```
+
+  The existing non-sunk render path already draws a **white base layer** for the
+  whole ship plus a **green clip-path layer per hit cell**, so partially-hit
+  survivors automatically show white where un-hit and green where hit. Sunk ships
+  still render as a full red icon.
+
+- `js/ui.js` — `_handlePlayerShot` AI delay:
+
+  ```diff
+  - setTimeout(() => this._runAiTurn(), flashed ? 2000 : 1400);
+  + setTimeout(() => this._runAiTurn(), flashed ? 1650 : 1000);
+  ```
+
+## Testing methodology
+
+Placement → battle. A loss was forced through the real board/attack functions
+(partially hitting the enemy carrier, fully sinking the enemy destroyer, then
+sinking the player's fleet so `winner === 'ai'`), then the reveal was inspected
+on the enemy board. Normal play, Play Again, and the new AI delay were also
+verified. Console was clean throughout.
+
+- **Loss reveal** — intact enemy ships (battleship, cruiser, submarine) rendered
+  in **white**; the **partially-hit carrier** showed its two hit cells **green**
+  with the remaining three cells **white**; the **sunk destroyer** rendered full
+  **red**.
+- **Play Again** — boards cleared and enemy ships hidden again; back to the
+  "Place Ships" start state.
+- **AI delay** — after a real shot the status showed `Enemy's turn — incoming
+  fire!` during the shorter (~1.0s / 1.65s) pause, then reverted to the player's
+  turn.
+- **Regression** — turns alternated normally, log updated correctly, no console
+  errors.
+
+## Bugs found
+
+**None.** The reveal and the delay change both worked on the first playthrough.
+The images below are verification evidence.
+
+## Verification screenshots
+
+**Player loss — enemy's surviving ships revealed (intact = white, partial carrier
+= green hits + white remainder, sunk destroyer = red):**
+
+![Loss reveal full board](docs/images/round11-loss-reveal.png)
+
+**Close-up of Enemy Waters after the loss:**
+
+![Loss reveal close-up](docs/images/round11-loss-reveal-zoom.png)

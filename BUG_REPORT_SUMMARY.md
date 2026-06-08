@@ -47,6 +47,9 @@ errors.
 - **Round 10** — fixed the turn-status bug above; also increased the post-shot
   delay before the AI responds (~1.4s miss / ~2s hit) so it feels like the AI is
   "thinking".
+- **Round 11** — on a player loss, reveal the enemy's surviving ships (intact in
+  white; partially-hit ships show un-hit cells white and hit cells green; sunk
+  ships red); also tuned the AI delay down to ~1.0s miss / ~1.65s hit.
 
 ## Verification
 

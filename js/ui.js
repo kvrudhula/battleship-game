@@ -389,8 +389,17 @@ export class UI {
     const STEP = CELL + GAP; // 30px per cell slot
     const PAD = 6; // board padding
 
+    // On a player loss, reveal the enemy's surviving ships too (intact cells
+    // stay white; any cells already hit keep their hit colour).
+    const revealOnLoss =
+      isEnemy &&
+      this.game.phase === PHASE.OVER &&
+      this.game.winner === 'ai';
+
     for (const ship of board.ships) {
-      const show = isEnemy ? ship.hits >= ship.size : revealShips;
+      const show = isEnemy
+        ? ship.hits >= ship.size || revealOnLoss
+        : revealShips;
       if (!show) continue;
 
       const [r0, c0] = ship.cells[0];
@@ -525,7 +534,7 @@ export class UI {
     this.render();
     // Pause so it feels like the AI is "thinking" before it returns fire. The
     // longer delay after a hit also lets the player's flash finish first.
-    setTimeout(() => this._runAiTurn(), flashed ? 2000 : 1400);
+    setTimeout(() => this._runAiTurn(), flashed ? 1650 : 1000);
   }
 
   _runAiTurn() {
