@@ -333,6 +333,8 @@ export class UI {
         container.appendChild(this._gameCell(board, r, c, revealShips, isEnemy));
       }
     }
+    // Add stretched ship-icon overlays on top of the cells.
+    this._renderShipOverlays(container, board, revealShips, isEnemy);
   }
 
   _labelCell(text) {
@@ -359,31 +361,58 @@ export class UI {
       el.classList.add('ship');
     }
 
-    // Ship icons on the board: player always, enemy only when sunk.
-    if (ship) {
-      const isSunk = ship.hits >= ship.size;
-      if (!isEnemy && revealShips) {
-        el.classList.add('has-icon');
-        const iconEl = document.createElement('span');
-        iconEl.className = 'cell-ship-icon';
-        if (wasShot) iconEl.classList.add(isSunk ? 'icon-sunk' : 'icon-hit');
-        iconEl.innerHTML = SHIP_ICONS[ship.id] || '';
-        el.appendChild(iconEl);
-      } else if (isEnemy && isSunk) {
-        el.classList.add('has-icon');
-        const iconEl = document.createElement('span');
-        iconEl.className = 'cell-ship-icon icon-sunk';
-        iconEl.innerHTML = SHIP_ICONS[ship.id] || '';
-        el.appendChild(iconEl);
-      }
-    }
-
     if (isEnemy) {
       this._wireEnemyCell(el, r, c);
     } else if (this.game.phase === PHASE.PLACEMENT) {
       this._wirePlacementCell(el, r, c);
     }
     return el;
+  }
+
+  // Renders a single stretched ship icon spanning all cells of each ship.
+  // Player board: always visible. Enemy board: only when the ship is sunk.
+  _renderShipOverlays(container, board, revealShips, isEnemy) {
+    const CELL = 28;
+    const GAP = 2;
+    const STEP = CELL + GAP; // 30px per cell slot
+    const PAD = 6; // board padding
+
+    for (const ship of board.ships) {
+      const show = isEnemy ? ship.hits >= ship.size : revealShips;
+      if (!show) continue;
+
+      const [r0, c0] = ship.cells[0];
+      const horiz = ship.orientation === 'horizontal';
+      const len = ship.size;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'ship-overlay';
+
+      // Top-left of the ship's footprint, relative to the board's padding box.
+      const left = PAD + (c0 + 1) * STEP;
+      const top = PAD + (r0 + 1) * STEP;
+      // Length of the ship in px (spanning all of its cells incl. gaps).
+      const span = len * CELL + (len - 1) * GAP;
+
+      // The overlay is always built horizontally (width = span, height = CELL),
+      // so the icon stretches across the ship's full length. Vertical ships are
+      // then rotated 90° clockwise about the top-left corner; shifting the
+      // origin right by one cell lands the rotated box back on the footprint.
+      overlay.style.width = `${span}px`;
+      overlay.style.height = `${CELL}px`;
+      if (horiz) {
+        overlay.style.left = `${left}px`;
+        overlay.style.top = `${top}px`;
+      } else {
+        overlay.style.left = `${left + CELL}px`;
+        overlay.style.top = `${top}px`;
+        overlay.style.transformOrigin = 'top left';
+        overlay.style.transform = 'rotate(90deg)';
+      }
+
+      overlay.innerHTML = SHIP_ICONS[ship.id] || '';
+      container.appendChild(overlay);
+    }
   }
 
   // ---- Placement interaction --------------------------------------------

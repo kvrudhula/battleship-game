@@ -157,3 +157,91 @@ verification evidence of each state working as specified.
 **Victory — every enemy ship icon revealed in red:**
 
 ![Victory with all enemy icons revealed](docs/images/victory-all-enemy-icons.png)
+
+# Round 5 — Stretched ship icons (one icon per ship)
+
+This round changes how ship icons are drawn on the board. Previously each cell of
+a ship rendered its **own** copy of the icon (5 small icons for the Carrier).
+Now a **single** icon is stretched across the ship's entire footprint (e.g. the
+Battleship icon spans all 4 of its cells), the icon is **white**, and the area of
+each cell not covered by the icon keeps the existing grey ship colour. All prior
+logic is preserved (hit = green, sunk = red, enemy reveal-on-sink, Play Again
+reset).
+
+## Implementation notes
+
+- `js/ui.js`: `_gameCell()` no longer embeds a per-cell icon. A new
+  `_renderShipOverlays()` runs after the grid is built and, for each visible
+  ship, appends one absolutely-positioned `div.ship-overlay` containing the
+  ship's SVG. The overlay is sized to the ship's full pixel span
+  (`len * CELL + (len - 1) * GAP`) so the icon stretches across every cell.
+- **Vertical ships** are built with the same horizontal overlay box and then
+  rotated 90° clockwise via `transform: rotate(90deg)` with
+  `transform-origin: top left`; the `left` offset is shifted by one cell width to
+  land the rotated box back exactly on the ship's footprint.
+- `styles.css`: `.board { position: relative }` anchors the absolutely-positioned
+  overlays; `.ship-overlay` is white, `pointer-events: none` (so it never blocks
+  cell clicks), and its SVG scales to fill the stretched box.
+- Visibility rules are unchanged: player overlays always render; enemy overlays
+  render only once `ship.hits >= ship.size`. The green-hit / red-sunk **cell
+  backgrounds** still show through beneath the white icon, so state is read from
+  the cell colour while the icon communicates ship type.
+
+## Testing methodology
+
+A full browser playthrough was recorded (placement → battle → victory → Play
+Again). Each behaviour was verified on screen:
+
+- **Stretched icons, both orientations** — after Random placement, every ship
+  showed exactly one white icon spanning its full length; horizontal ships
+  stretched left-to-right and vertical ships rendered rotated and spanning
+  top-to-bottom, aligned to their cells.
+- **Enemy reveal-on-sink** — the first hit on the enemy Destroyer showed the
+  green ✕ with no icon; only after the second hit sank it did a single stretched
+  icon appear across both (now red) cells.
+- **Player hit/sunk under the icon** — a sunk Submarine showed three red cells
+  and a hit Cruiser cell showed green, all beneath the intact white stretched
+  icon.
+- **Victory** — all five enemy ships revealed their stretched icons over the red
+  sunk cells.
+- **Play Again** — both boards were cleared of every overlay and returned to the
+  placement phase.
+- **Regression checks** — no console errors; turn-locking, repeat-shot
+  rejection, and win/loss detection all unchanged.
+
+## Bugs found
+
+**One bug was found and fixed during development; the final playthrough was
+clean.**
+
+| # | Bug | Cause | Fix |
+|---|-----|-------|-----|
+| 1 | **Vertical ship icons rendered too small / misaligned** | The first attempt rotated only the inner `<svg>` rather than the overlay box, so the icon was laid out in a 28 px-wide column and never stretched to the ship's length; it also drifted off the footprint because rotation pivots around the element centre. | Build the overlay horizontally (`width = span`, `height = CELL`) for all ships, then rotate the **whole overlay** 90° about its top-left corner and offset `left` by one cell width so the rotated box lands back on the ship's cells. |
+
+Because this was caught and fixed before the recorded run, the screenshots below
+are verification evidence of the corrected behaviour, plus a before/after of the
+icon-rendering change itself.
+
+## Before / after — icon rendering change
+
+**Before (Round 4) — one separate icon per cell (note the repeated silhouettes along each ship):**
+
+![Before: one icon per cell](docs/images/player-hit-green-sunk-red.png)
+
+**After (Round 5) — a single white icon stretched across each ship; hit cell green, sunk ship red:**
+
+![After: stretched icon, hit green and sunk red](docs/images/round5-player-hit-sunk-stretched.png)
+
+## Verification screenshots
+
+**Placement — one stretched white icon per ship, horizontal and vertical:**
+
+![Stretched icons at placement](docs/images/round5-placement-stretched.png)
+
+**Enemy fleet revealed on sink — each ship a single stretched icon over its red cells:**
+
+![Enemy stretched icons revealed](docs/images/round5-enemy-revealed-stretched.png)
+
+**Victory — full board with every enemy ship revealed as a stretched icon:**
+
+![Victory with stretched enemy icons](docs/images/round5-victory-stretched.png)
