@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Battleship — Play vs AI</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="header">
+      <h1>⚓ Battleship</h1>
+      <p class="subtitle">Place your fleet, then sink the AI before it sinks you.</p>
+    </header>
+
+    <main class="layout">
+      <!-- Status line + placement controls -->
+      <section class="control-panel">
+        <p id="status" class="status"></p>
+
+        <div id="placement-controls" class="placement-controls">
+          <button id="rotate-btn" type="button">Rotate ship</button>
+          <button id="random-btn" type="button">Random placement</button>
+          <button id="clear-btn" type="button">Clear board</button>
+          <button id="start-btn" type="button" class="primary">Start Game</button>
+        </div>
+
+        <button id="play-again-btn" type="button" class="primary" style="display: none">
+          Play Again
+        </button>
+      </section>
+
+      <!-- The two boards -->
+      <section class="boards">
+        <div class="board-wrap">
+          <h2>Your Fleet</h2>
+          <div id="player-board" class="board" aria-label="Your board"></div>
+        </div>
+        <div class="board-wrap">
+          <h2>Enemy Waters</h2>
+          <div id="enemy-board" class="board" aria-label="Enemy board"></div>
+        </div>
+      </section>
+
+      <!-- Legend + action log -->
+      <section class="info">
+        <ul class="legend">
+          <li><span class="swatch ship"></span> Ship</li>
+          <li><span class="swatch hit"></span> Hit</li>
+          <li><span class="swatch sunk"></span> Sunk</li>
+          <li><span class="swatch miss"></span> Miss</li>
+        </ul>
+        <div class="log-wrap">
+          <h3>Battle Log</h3>
+          <ul id="log" class="log"></ul>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
