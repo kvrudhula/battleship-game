@@ -129,13 +129,14 @@ export class UI {
       const icon = SHIP_ICONS[outcome.sunkShip.id] || '';
       const text =
         who === 'player'
-          ? `You sunk their ${name}!`
-          : `They sunk your ${name}!`;
+          ? `You have sunk an Enemy ${name}`
+          : `The Enemy has sunk your ${name}`;
       this._showFlash(text, 'sunk', icon);
       return true;
     }
     if (outcome.result === ATTACK_RESULT.HIT) {
-      this._showFlash('HIT!', 'hit', MISSILE_ICON);
+      const text = who === 'player' ? 'HIT!' : "You've been Hit!";
+      this._showFlash(text, 'hit', MISSILE_ICON);
       return true;
     }
     return false;

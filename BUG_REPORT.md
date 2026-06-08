@@ -457,3 +457,69 @@ existing behaviours were preserved. The images below are verification evidence.
 **Victory — enemy fleet revealed, including the new submarine icon (vertical, red):**
 
 ![Victory with new sub icon](docs/images/round8-victory.png)
+
+# Round 9 — Overlay message wording
+
+Three flash-overlay messages were reworded. No other logic changed.
+
+## What changed
+
+| Event | Before | After |
+| --- | --- | --- |
+| You sink an enemy ship | `You sunk their [Ship]!` | `You have sunk an Enemy [Ship]` |
+| Enemy sinks your ship | `They sunk your [Ship]!` | `The Enemy has sunk your [Ship]` |
+| Enemy hits your ship | `HIT!` | `You've been Hit!` |
+
+The `[Ship]` placeholder is filled with the actual sunk ship's name. The
+**player-hit** overlay (when *you* hit an enemy ship) is intentionally unchanged
+and still reads `HIT!`.
+
+## Implementation notes
+
+- `js/ui.js` — `_flashForOutcome(outcome, who)` is the single place that builds
+  these strings. `who === 'player'` means the player fired; `who === 'ai'` means
+  the AI fired. The sunk branch now picks
+  `You have sunk an Enemy ${name}` / `The Enemy has sunk your ${name}` by `who`,
+  and the hit branch picks `HIT!` (player) / `You've been Hit!` (ai). The sunk
+  ship icon and the missile graphic are unchanged.
+
+## Testing methodology
+
+Placement → battle, then each overlay was exercised through the real
+`_flashForOutcome` code path (the same function the live click / AI-turn handlers
+call) and captured on screen. Normal turn-by-turn play was also run afterwards to
+confirm no regressions and no console errors.
+
+- **You sink an enemy ship** — overlay read `You have sunk an Enemy Cruiser` with
+  the cruiser icon (also confirmed via the real player-fire flow: log line
+  "You fired at G4 and sank the Cruiser").
+- **Enemy sinks your ship** — overlay read `The Enemy has sunk your Battleship`
+  with the battleship icon.
+- **Enemy hits your ship** — overlay read `You've been Hit!` with the missile
+  graphic.
+- **You hit an enemy ship** — overlay still read `HIT!` (unchanged).
+- **Regression** — turns alternated normally, log updated correctly, no console
+  errors.
+
+## Bugs found
+
+**None.** All four overlay states rendered the correct text on the first
+playthrough. The images below are verification evidence.
+
+## Verification screenshots
+
+**You sink an enemy ship — "You have sunk an Enemy Cruiser":**
+
+![You have sunk an Enemy Cruiser](docs/images/round9-sink-enemy.png)
+
+**Enemy sinks your ship — "The Enemy has sunk your Battleship":**
+
+![The Enemy has sunk your Battleship](docs/images/round9-enemy-sinks-you.png)
+
+**Enemy hits your ship — "You've been Hit!":**
+
+![You've been Hit!](docs/images/round9-youve-been-hit.png)
+
+**You hit an enemy ship — still "HIT!" (unchanged):**
+
+![HIT!](docs/images/round9-player-hit.png)
