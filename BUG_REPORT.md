@@ -523,3 +523,96 @@ playthrough. The images below are verification evidence.
 **You hit an enemy ship — still "HIT!" (unchanged):**
 
 ![HIT!](docs/images/round9-player-hit.png)
+
+# Round 10 — Turn-status bug fix + AI "thinking" delay
+
+## Bug found (reported by Kris V)
+
+**The top status text always read `Your turn — click the enemy board to fire.`
+even while it was the enemy's (AI's) turn to fire.** Reported by Kris V during
+play.
+
+| | Status text shown |
+| --- | --- |
+| Player's turn | `Your turn — click the enemy board to fire.` ✅ |
+| Enemy's turn (before fix) | `Your turn — click the enemy board to fire.` ❌ |
+| Enemy's turn (after fix) | `Enemy's turn — incoming fire!` ✅ |
+
+### Cause
+
+`_renderStatus()` in `js/ui.js` set a single hard-coded string for the entire
+`PHASE.PLAYING` phase:
+
+```js
+} else if (phase === PHASE.PLAYING) {
+  msg = 'Your turn — click the enemy board to fire.';
+}
+```
+
+It never consulted whose turn it was. The UI already tracks this with the
+`this.busy` flag (set to `true` while the AI is taking its turn and back to
+`false` when control returns to the player), but `_renderStatus()` ignored it.
+
+### Fix
+
+Branch on `this.busy` so the status reflects whose turn it is:
+
+```js
+} else if (phase === PHASE.PLAYING) {
+  msg = this.busy
+    ? "Enemy's turn — incoming fire!"
+    : 'Your turn — click the enemy board to fire.';
+}
+```
+
+No other state was needed — `busy` is already toggled in `_handlePlayerShot`
+(true before the AI fires) and `_runAiTurn` (false after), and `render()` runs at
+both points, so the status updates automatically on each turn change.
+
+## Related change — AI "thinking" delay
+
+To make the game flow better (and make the enemy-turn state easy to see), the
+pause between the player's shot and the AI's response was increased in
+`_handlePlayerShot`:
+
+```diff
+- setTimeout(() => this._runAiTurn(), flashed ? 1300 : 600);
++ setTimeout(() => this._runAiTurn(), flashed ? 2000 : 1400);
+```
+
+So the AI now waits ~1.4s after a miss / ~2s after a hit (the longer delay still
+lets the player's hit flash finish first), which reads as the AI "thinking".
+
+## Testing methodology
+
+Placement → battle. The bug was reproduced before the fix, then the fix and the
+new delay were verified both by forcing the `busy` state and by normal
+turn-by-turn play (a real click on Enemy Waters, then waiting for the AI to
+respond). Console was clean throughout.
+
+- **Before fix** — with the AI taking its turn (`busy = true`), the status still
+  read `Your turn — click the enemy board to fire.` (bug).
+- **After fix, your turn** — at battle start the status read
+  `Your turn — click the enemy board to fire.`
+- **After fix, enemy turn** — after firing, the status read
+  `Enemy's turn — incoming fire!` while the AI was "thinking"; the battle log
+  showed only the player's shot at that moment, confirming the AI had not yet
+  fired.
+- **Revert** — once the AI fired, the status returned to
+  `Your turn — click the enemy board to fire.`
+- **Regression** — turns alternated normally with the longer delay, log updated
+  correctly, no console errors.
+
+## Verification screenshots
+
+**Before fix — status still reads "Your turn" during the enemy's turn (bug):**
+
+![Bug: Your turn during enemy turn](docs/images/round10-bug-before.png)
+
+**After fix — player's turn reads "Your turn":**
+
+![Fixed: Your turn](docs/images/round10-fix-your-turn.png)
+
+**After fix — enemy's turn reads "Enemy's turn — incoming fire!":**
+
+![Fixed: Enemy's turn](docs/images/round10-fix-enemy-turn.png)

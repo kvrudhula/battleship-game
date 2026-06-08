@@ -18,13 +18,16 @@ and screenshots live in [`BUG_REPORT.md`](BUG_REPORT.md).
 
 ## Bugs found and how they were fixed
 
-| Round | Bug | Cause | Fix |
-|------|-----|-------|-----|
-| 5 | Vertical ship icons rendered too small and misaligned | Only the inner `<svg>` was rotated, so the icon was laid out in a 28 px-wide column (never stretched to the ship's length) and drifted off its footprint because rotation pivots around the element centre | Build the overlay horizontally (`width = span`, `height = CELL`), then rotate the **whole overlay** 90° about its top-left corner and offset `left` by one cell width so it lands back on the ship's cells |
+| Round | Bug | Found by | Cause | Fix |
+|------|-----|----------|-------|-----|
+| 5 | Vertical ship icons rendered too small and misaligned | Devin (during dev) | Only the inner `<svg>` was rotated, so the icon was laid out in a 28 px-wide column (never stretched to the ship's length) and drifted off its footprint because rotation pivots around the element centre | Build the overlay horizontally (`width = span`, `height = CELL`), then rotate the **whole overlay** 90° about its top-left corner and offset `left` by one cell width so it lands back on the ship's cells |
+| 10 | Status text always read "Your turn — click the enemy board to fire." even during the enemy's turn | **Kris V** (during play) | `_renderStatus()` used one hard-coded string for the whole `PLAYING` phase and never checked whose turn it was, despite the `busy` flag already tracking it | Branch on `this.busy`: show "Enemy's turn — incoming fire!" while the AI is firing, otherwise "Your turn …". `busy` is already toggled around the AI turn, so the status updates automatically |
 
-This was the **only** bug found in the entire project, and it was caught and
-fixed during development before the recorded run. Every other round passed on the
-first full playthrough with no functional bugs and no console errors.
+Two bugs were found across the project. The Round 5 icon bug was caught by Devin
+during development; the Round 10 turn-status bug was reported by Kris V during
+play. Both were fixed and verified with before/after screenshots. Every other
+round passed on the first full playthrough with no functional bugs and no console
+errors.
 
 ## Feature rounds (all verified, no bugs)
 
@@ -41,6 +44,9 @@ first full playthrough with no functional bugs and no console errors.
 - **Round 8** — submarine icon redrawn as a true top-down view.
 - **Round 9** — reworded overlays: "You have sunk an Enemy [Ship]", "The Enemy
   has sunk your [Ship]", and "You've been Hit!".
+- **Round 10** — fixed the turn-status bug above; also increased the post-shot
+  delay before the AI responds (~1.4s miss / ~2s hit) so it feels like the AI is
+  "thinking".
 
 ## Verification
 

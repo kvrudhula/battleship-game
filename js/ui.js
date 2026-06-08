@@ -207,7 +207,9 @@ export class UI {
         msg = 'All ships placed. Press "Start Game" to begin!';
       }
     } else if (phase === PHASE.PLAYING) {
-      msg = 'Your turn — click the enemy board to fire.';
+      msg = this.busy
+        ? "Enemy's turn — incoming fire!"
+        : 'Your turn — click the enemy board to fire.';
     } else if (phase === PHASE.OVER) {
       msg =
         this.game.winner === 'player'
@@ -521,8 +523,9 @@ export class UI {
 
     this.busy = true;
     this.render();
-    // Give a flash time to play before the AI fires (and shows its own flash).
-    setTimeout(() => this._runAiTurn(), flashed ? 1300 : 600);
+    // Pause so it feels like the AI is "thinking" before it returns fire. The
+    // longer delay after a hit also lets the player's flash finish first.
+    setTimeout(() => this._runAiTurn(), flashed ? 2000 : 1400);
   }
 
   _runAiTurn() {
